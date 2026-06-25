@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars (gitignored) and fill in. Prefer env vars / SOPS for
+# secrets rather than committing them.
+
+# --- GCP / GKE (always on in dev) ---
+gcp_project_id = "my-gcp-project-id"
+gcp_region     = "europe-west3"
+
+# --- AWS / EKS (optional) ---
+enable_eks = false
+aws_region = "eu-central-1"
+
+# --- vSphere (optional homelab) ---
+enable_vsphere   = false
+# vsphere_server   = "vcenter.lab.local"
+# vsphere_user     = "administrator@vsphere.local"
+# vsphere_password = "set-via-env-TF_VAR_vsphere_password"
+
+# --- Proxmox (optional homelab) ---
+enable_proxmox    = false
+# proxmox_endpoint  = "https://pve.lab.local:8006/"
+# proxmox_api_token = "user@pam!tokenid=set-via-env"

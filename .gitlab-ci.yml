@@ -1,0 +1,178 @@
+# GitLab CI for the milad_portfolio Terraform monorepo.
+#
+# Mirrors .github/workflows: fmt + validate + tflint + Trivy on every change,
+# then a manual plan -> apply flow per environment (dev / staging / prod).
+#
+# State lives in S3/GCS (see bootstrap/*), NOT GitLab-managed state, so we call
+# `terraform` directly rather than the `gitlab-terraform` wrapper.
+#
+# Required CI/CD variables (Settings > CI/CD > Variables), masked/protected:
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  (or use OIDC -> id_tokens below)
+#   GOOGLE_CREDENTIALS  (JSON key, "File" type)  or Workload Identity Federation
+#   VSPHERE_USER / VSPHERE_PASSWORD / VSPHERE_SERVER     (if enable_vsphere)
+#   PROXMOX_VE_ENDPOINT / PROXMOX_VE_API_TOKEN           (if enable_proxmox)
+
+variables:
+  TF_VERSION: "1.9.8"
+  # Keep provider plugins between jobs/pipelines.
+  TF_PLUGIN_CACHE_DIR: "${CI_PROJECT_DIR}/.terraform.d/plugin-cache"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+stages:
+  - validate
+  - security
+  - plan
+  - apply
+
+default:
+  image: hashicorp/terraform:${TF_VERSION}
+  tags: [docker]
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}-plugins"
+    paths:
+      - .terraform.d/plugin-cache
+  before_script:
+    - terraform --version
+    - mkdir -p "${TF_PLUGIN_CACHE_DIR}"
+
+# Run CI on merge requests and on the default branch only.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ---------------------------------------------------------------------------
+# validate stage
+# ---------------------------------------------------------------------------
+fmt:
+  stage: validate
+  script:
+    - terraform fmt -recursive -check -diff
+
+validate:
+  stage: validate
+  script:
+    - |
+      set -e
+      for dir in $(find modules live bootstrap -name versions.tf -exec dirname {} \; | sort -u); do
+        echo "==> validate $dir"
+        terraform -chdir="$dir" init -backend=false
+        terraform -chdir="$dir" validate
+      done
+
+tflint:
+  stage: validate
+  image:
+    name: ghcr.io/terraform-linters/tflint:latest
+    entrypoint: [""]
+  before_script: []
+  cache: {}
+  script:
+    - tflint --version
+    - tflint --init
+    - tflint --recursive --minimum-failure-severity=warning
+
+# ---------------------------------------------------------------------------
+# security stage
+# ---------------------------------------------------------------------------
+trivy_iac:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  before_script: []
+  cache: {}
+  script:
+    - trivy config --severity HIGH,CRITICAL --exit-code 1 .
+  allow_failure: false
+
+# ---------------------------------------------------------------------------
+# plan / apply templates
+# ---------------------------------------------------------------------------
+# Configure cloud auth via OIDC instead of static keys (recommended):
+#   id_tokens:
+#     GCP_TOKEN: { aud: https://iam.googleapis.com/projects/.../providers/gitlab }
+#     AWS_TOKEN: { aud: sts.amazonaws.com }
+
+.tf_plan: &tf_plan
+  stage: plan
+  script:
+    - cd "live/${ENV}"
+    - terraform init
+    - terraform plan -out="${CI_PROJECT_DIR}/plan-${ENV}.tfplan"
+    - terraform show -no-color "${CI_PROJECT_DIR}/plan-${ENV}.tfplan" > "${CI_PROJECT_DIR}/plan-${ENV}.txt"
+  artifacts:
+    name: "plan-${ENV}"
+    paths:
+      - plan-${ENV}.tfplan
+      - plan-${ENV}.txt
+    expire_in: 7 days
+    when: on_success
+
+.tf_apply: &tf_apply
+  stage: apply
+  script:
+    - cd "live/${ENV}"
+    - terraform init
+    - terraform apply -auto-approve "${CI_PROJECT_DIR}/plan-${ENV}.tfplan"
+  rules:
+    # Apply only from the default branch, and only by manual click.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: false
+
+# ---------------------------------------------------------------------------
+# dev
+# ---------------------------------------------------------------------------
+plan:dev:
+  <<: *tf_plan
+  variables: { ENV: dev }
+  rules:
+    - exists: ["live/dev/versions.tf"]
+
+apply:dev:
+  <<: *tf_apply
+  variables: { ENV: dev }
+  needs: ["plan:dev"]
+  environment: { name: dev }
+
+# ---------------------------------------------------------------------------
+# staging  (activates once live/staging is populated)
+# ---------------------------------------------------------------------------
+plan:staging:
+  <<: *tf_plan
+  variables: { ENV: staging }
+  rules:
+    - exists: ["live/staging/versions.tf"]
+
+apply:staging:
+  <<: *tf_apply
+  variables: { ENV: staging }
+  needs: ["plan:staging"]
+  environment: { name: staging }
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      exists: ["live/staging/versions.tf"]
+      when: manual
+      allow_failure: false
+
+# ---------------------------------------------------------------------------
+# prod  (activates once live/prod is populated)
+# ---------------------------------------------------------------------------
+plan:prod:
+  <<: *tf_plan
+  variables: { ENV: prod }
+  rules:
+    - exists: ["live/prod/versions.tf"]
+
+apply:prod:
+  <<: *tf_apply
+  variables: { ENV: prod }
+  needs: ["plan:prod"]
+  environment: { name: prod }
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      exists: ["live/prod/versions.tf"]
+      when: manual
+      allow_failure: false

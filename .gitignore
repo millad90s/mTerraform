@@ -1,0 +1,36 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files (state should live in the remote backend)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files — may contain secrets/credentials
+*.tfvars
+*.tfvars.json
+!example.tfvars
+
+# Override files (local-only experiments)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI config & lock-info
+.terraformrc
+terraform.rc
+.terraform.lock.hcl.bak
+
+# SOPS decrypted output
+*.dec.*
+
+# OS / editor noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
