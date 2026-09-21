@@ -1,0 +1,217 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: mterraform
+  title: mTerraform
+  description: Multi-cloud Terraform modules and live environments.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+spec:
+  owner: user:default/millad90s
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mterraform-live
+  title: mTerraform live environments
+  description: Root Terraform configurations (dev, staging, prod, local) that compose the modules.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/live
+  tags: [terraform, iac]
+  links:
+    - url: https://github.com/millad90s/mTerraform
+      title: Repository
+spec:
+  type: service
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+  dependsOn:
+    - component:default/tf-module-eks-cluster
+    - component:default/tf-module-gke-cluster
+    - component:default/tf-module-k8s-bootstrap
+    - component:default/tf-module-multipass-vm
+    - component:default/tf-module-openstack-instance
+    - component:default/tf-module-openstack-storage
+    - component:default/tf-module-proxmox-lxc
+    - component:default/tf-module-proxmox-vm
+    - component:default/tf-module-vsphere-storage
+    - component:default/tf-module-vsphere-vm
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mterraform-dashboard
+  title: mTerraform local dashboard
+  description: Local web UI (Python + HTML) to init/plan/apply/destroy Terraform environments.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/tools/dashboard
+  tags: [terraform, tooling]
+spec:
+  type: tool
+  lifecycle: experimental
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-eks-cluster
+  title: eks-cluster
+  description: AWS EKS Kubernetes cluster.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/eks-cluster
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-gke-cluster
+  title: gke-cluster
+  description: Google GKE Kubernetes cluster.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/gke-cluster
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-k8s-bootstrap
+  title: k8s-bootstrap
+  description: Bootstrap of in-cluster components on Kubernetes.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/k8s-bootstrap
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-multipass-vm
+  title: multipass-vm
+  description: Local Ubuntu VM via Multipass.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/multipass-vm
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-openstack-instance
+  title: openstack-instance
+  description: OpenStack compute instance.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/openstack-instance
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-openstack-storage
+  title: openstack-storage
+  description: OpenStack storage volumes.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/openstack-storage
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-proxmox-lxc
+  title: proxmox-lxc
+  description: Proxmox LXC container.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/proxmox-lxc
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-proxmox-vm
+  title: proxmox-vm
+  description: Proxmox QEMU/KVM VM (clone + cloud-init).
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/proxmox-vm
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-vsphere-storage
+  title: vsphere-storage
+  description: vSphere storage resources.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/vsphere-storage
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tf-module-vsphere-vm
+  title: vsphere-vm
+  description: vSphere virtual machine.
+  annotations:
+    github.com/project-slug: millad90s/mTerraform
+    backstage.io/source-location: url:https://github.com/millad90s/mTerraform/tree/master/modules/vsphere-vm
+  tags: [terraform, module]
+spec:
+  type: terraform-module
+  lifecycle: production
+  owner: user:default/millad90s
+  system: mterraform

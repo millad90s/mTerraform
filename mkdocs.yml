@@ -1,0 +1,17 @@
+site_name: mTerraform
+docs_dir: docs
+plugins:
+  - techdocs-core
+nav:
+  - Home: index.md
+  - Modules:
+      - eks-cluster: modules/eks-cluster.md
+      - gke-cluster: modules/gke-cluster.md
+      - k8s-bootstrap: modules/k8s-bootstrap.md
+      - multipass-vm: modules/multipass-vm.md
+      - openstack-instance: modules/openstack-instance.md
+      - openstack-storage: modules/openstack-storage.md
+      - proxmox-lxc: modules/proxmox-lxc.md
+      - proxmox-vm: modules/proxmox-vm.md
+      - vsphere-storage: modules/vsphere-storage.md
+      - vsphere-vm: modules/vsphere-vm.md
