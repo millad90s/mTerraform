@@ -12,3 +12,8 @@ output "argocd_namespace" {
   description = "Namespace where Argo CD was installed (if enabled)."
   value       = local.argo.enabled ? local.argo.namespace : null
 }
+
+output "falco_namespace" {
+  description = "Namespace where Falco was installed (if enabled)."
+  value       = local.falco.enabled ? local.falco.namespace : null
+}

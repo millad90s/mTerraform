@@ -32,3 +32,14 @@ variable "argocd" {
   })
   default = {}
 }
+
+variable "falco" {
+  description = "Falco (runtime security) install toggle and version."
+  type = object({
+    enabled       = optional(bool, false)
+    chart_version = optional(string, "4.14.2")
+    namespace     = optional(string, "falco")
+    extra_set     = optional(map(string), {})
+  })
+  default = {}
+}

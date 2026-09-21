@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terraform Dashboard</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1b1f24;--mut:#6a737d;--bd:#dde1e6;--pri:#5c4ee5;--ok:#1a7f37;--bad:#cf222e;--log:#0d1117;--logfg:#d1d7e0}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1216;--card:#171b21;--fg:#e6e9ee;--mut:#8b949e;--bd:#2a313a;--pri:#8b7dff;--ok:#3fb950;--bad:#f85149}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif}
+header{display:flex;gap:12px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--bd);background:var(--card);flex-wrap:wrap}
+h1{font-size:16px;margin:0 auto 0 0}select,input,button{font:inherit;padding:7px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--fg)}
+main{max-width:1000px;margin:0 auto;padding:20px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:grid;gap:4px;font-size:12px;color:var(--mut)}label input{color:var(--fg);font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{cursor:pointer}button.pri{background:var(--pri);color:#fff;border-color:transparent}button.bad{color:var(--bad);border-color:var(--bad)}button:disabled{opacity:.5;cursor:default}
+ul{margin:0;padding-left:18px}code{font-family:ui-monospace,monospace}
+pre{background:var(--log);color:var(--logfg);padding:12px;border-radius:8px;height:320px;overflow:auto;margin:0;font-size:12px;white-space:pre-wrap}
+.st{font-size:12px;margin-left:8px}.ok{color:var(--ok)}.err{color:var(--bad)}.mut{color:var(--mut)}
+</style></head><body>
+<header><h1>Terraform Dashboard</h1><label style="display:flex;gap:8px;align-items:center">Environment <select id="env"></select></label></header>
+<main>
+ <section class="card"><h2>Variables</h2><div class="grid" id="vars"></div>
+  <div class="row"><button id="save">Save</button></div></section>
+ <section class="card"><h2>Actions</h2>
+  <div class="row" style="margin:0"><button data-a="init">Init</button><button data-a="plan">Plan</button>
+   <button data-a="apply" class="pri">Create / Apply</button><button data-a="destroy" class="bad">Destroy</button>
+   <span class="st" id="status"></span></div></section>
+ <section class="card"><h2>Resources &amp; outputs</h2><div class="grid">
+  <div><b>State</b><ul id="res"></ul></div><div><b>Outputs</b><ul id="out"></ul></div></div></section>
+ <section class="card"><h2>Log</h2><pre id="log">Ready.</pre></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);let busy=false;
+const api=async(p,o)=>{const r=await fetch(p,o);const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j};
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+const cur=()=>$('env').value;
+function li(ul,items,empty){ul.replaceChildren(...(items.length?items:[empty]).map(t=>{const l=document.createElement('li');
+  if(t===empty){l.className='mut';l.textContent=t}else{const c=document.createElement('code');c.textContent=t;l.append(c)}return l}))}
+async function load(){
+  const d=await api('/api/envs/'+cur());
+  $('vars').replaceChildren(...d.variables.map(v=>{const l=document.createElement('label');l.append(v.name+(v.description?' — '+v.description:''));
+    const i=document.createElement('input');i.dataset.k=v.name;i.value=d.values[v.name]??'';i.placeholder=v.default;l.append(i);return l}));
+  li($('res'),d.resources,'(none)');
+  li($('out'),Object.entries(d.outputs).map(([k,v])=>k+' = '+v),'(none)');
+  setBusy(!!d.running);
+}
+function setBusy(b){busy=b;document.querySelectorAll('[data-a],#save').forEach(x=>x.disabled=b)}
+async function run(a){
+  if(a==='destroy'&&!confirm('Destroy all resources in "'+cur()+'"?'))return;
+  if(a==='apply'&&!confirm('Apply changes in "'+cur()+'"?'))return;
+  setBusy(true);$('log').textContent='';$('status').textContent='running '+a+'…';$('status').className='st mut';
+  try{const {job}=await post(`/api/envs/${cur()}/${a}`);let n=0,done=false;
+    while(!done){const r=await api(`/api/jobs/${job}?from=${n}`);n=r.next;
+      if(r.lines.length){$('log').textContent+=r.lines.join('\n')+'\n';$('log').scrollTop=1e9}
+      if(r.done){done=true;$('status').textContent=r.code===0?a+' finished':a+' failed';$('status').className='st '+(r.code===0?'ok':'err')}
+      else await new Promise(s=>setTimeout(s,700))}
+  }catch(e){$('log').textContent+=e.message;$('status').textContent='error';$('status').className='st err'}
+  await load();
+}
+async function save(){const b={};document.querySelectorAll('#vars input').forEach(i=>b[i.dataset.k]=i.value);
+  await post(`/api/envs/${cur()}/vars`,b);$('status').textContent='saved';$('status').className='st ok'}
+document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>run(b.dataset.a));
+$('save').onclick=()=>save().catch(e=>alert(e.message));$('env').onchange=load;
+(async()=>{const e=await api('/api/envs');$('env').replaceChildren(...e.map(n=>new Option(n,n)));
+  if(e.includes('local'))$('env').value='local';load()})();
+</script></body></html>

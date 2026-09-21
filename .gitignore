@@ -34,3 +34,5 @@ terraform.rc
 *.swp
 .idea/
 .vscode/
+live/*/terraform.tfvars.json
+modules/multipass-vm/.generated/

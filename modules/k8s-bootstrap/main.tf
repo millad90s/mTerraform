@@ -18,6 +18,13 @@ locals {
     chart_version = "7.6.12"
     namespace     = "argocd"
   }, var.argocd)
+
+  falco = merge({
+    enabled       = false
+    chart_version = "4.14.2"
+    namespace     = "falco"
+    extra_set     = {}
+  }, var.falco)
 }
 
 resource "helm_release" "ingress_nginx" {
@@ -69,4 +76,28 @@ resource "helm_release" "argocd" {
   version          = local.argo.chart_version
   namespace        = local.argo.namespace
   create_namespace = true
+}
+
+resource "helm_release" "falco" {
+  count = local.falco.enabled ? 1 : 0
+
+  name             = "falco"
+  repository       = "https://falcosecurity.github.io/charts"
+  chart            = "falco"
+  version          = local.falco.chart_version
+  namespace        = local.falco.namespace
+  create_namespace = true
+
+  set {
+    name  = "driver.kind"
+    value = "modern_ebpf"
+  }
+
+  dynamic "set" {
+    for_each = local.falco.extra_set
+    content {
+      name  = set.key
+      value = set.value
+    }
+  }
 }

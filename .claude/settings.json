@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(multipass version *)",
+      "Bash(multipass list *)",
+      "Bash(limactl list *)",
+      "Bash(VBoxManage --version)",
+      "Read(//Library/Application Support/com.canonical.multipass/bin/**)",
+      "Bash(terraform version *)",
+      "Bash(ls ~/.ssh/*.pub 2>&1; cd /Users/milad.saedi/Documents/projects/terraform/mTerraform; ls live/local 2>&1 | head -2)",
+      "Read(//Users/milad.saedi/.ssh/**)",
+      "Bash(rm live/local/terraform.tfvars.json)",
+      "Bash(pkill -f tools/dashboard/server.py)"
+    ]
+  }
+}

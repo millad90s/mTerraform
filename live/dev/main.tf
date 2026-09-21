@@ -32,6 +32,7 @@ module "k8s_addons" {
   ingress_nginx = { enabled = true }
   cert_manager  = { enabled = true }
   argocd        = { enabled = false }
+  falco         = { enabled = true }
 
   depends_on = [module.gke]
 }
